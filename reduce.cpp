@@ -1,40 +1,12 @@
 #include <iostream>
 //#include <flens/flens.cxx>
 //#include <cmath>
-
+#include <unistd.h>
 #include "lll.h"
 #include "/home/alex/research/archer/g.h"
 
 using namespace std;
 //using namespace flens;
-
-
-/*
-Runs Gram-Schmidt process on basis B, makes Bstar the orthogonal basis
-Returns 'alpha', the coefficients used during the process, as a matrix
-
-GEMatrix gram_schmidt( GEMatrix * B, GEMatrix * Bstar ){
-  int m = B->numRows();
-  int n = B->numCols();
-  GEMatrix alpha(n,n);
-
-  (*Bstar)(_,_(1,1)) = (*B)(_,_(1,1));
-
-  for( int j = 2; j <= n; j++ ){
-    (*Bstar)(_,_(j,j)) = (*B)(_,_(j,j));
-    for( int i = 1; i < j; i++ ){
-      // computes coefficient of projection
-      double alph = (*Bstar)(_,_(i,i)).vectorView()*(*B)(_,_(j,j)).vectorView()
-	/  ((*Bstar)(_,_(i,i)).vectorView() * (*Bstar)(_,_(i,i)).vectorView());
-
-      alpha(i,j) = alph;
-      
-      // replaces vector with orthogonal vector
-      (*Bstar)(_,_(j,j)) = (*Bstar)(_,_(j,j)) - alph * (*Bstar)(_,_(i,i));
-    }
-  }
-  return alpha;
-  }*/
 
 
 void get_matrix( g * gr, GEMatrix * gr_A ){
@@ -73,21 +45,123 @@ void get_dom_basis( GEMatrix * gr_A, GEMatrix * gr_B, int scale = 2 ){
   }
 }
 
+bool is_dom_set( g * gr, int * dom_set ){
+  int n = gr->order();
+  bool dominated[gr->order()];
+  
+  for( int i = 0; i < n; i++ ){
+    dominated[i] = false;
+  }
 
-int main( int argc, char * argv[] ){
-  char opt;
-
-  if( argc == 2 ){
-    if( argv[1][0] == '-' ){
-      opt = argv[1][1];
-
+  for( int i = 0; i < n; i++ ){
+    if( dom_set[i] != 0 ){
+      dominated[i] = true;
+      for( int j = 0; j < n; j++ ){
+	if( gr->is_edge(i,j) ){
+	  dominated[j] = true;
+	}
+      }
     }
   }
 
-  if( opt == 'r' ){
-    int n;
+  for( int i = 0; i < n; i++ ) cout << dominated[i] << " ";
+  cout << endl;
+  
+  for( int i = 0; i < n; i++ )
+    if( !dominated[i] ) return false;
+
+  return true;
+  
+}
+
+bool check_vec( GEMatrix::View gr_B, int row_size, int n ){
+  /*cout << "CHECK" << endl;
+    cout << col << endl;*/
+  bool good_one = true;
+  bool still_good_one = true;
+      
+  for( int r = row_size; r >= row_size-n; r-- ){
+    if( gr_B(r,1) != 0 ){
+      good_one = false;			
+      break;
+    }
+  }
+  if( good_one ){
+    bool posi = true;
+    bool found_first = false;
+    for( int r = 1; r <= 2*n; r++ ){
+      int val = gr_B(r,1);
+      if( val != 0 ){
+	if( !found_first ){
+	  posi = val > 0;
+	  found_first = true;
+	}
+	else{
+	  if( (posi && val < 0) || (!posi && val > 0 ) ){
+	    still_good_one = false;
+	    break;
+	  }
+	}
+      }
+    }
+  }
+  return still_good_one && good_one;
+}
+
+
+
+int main( int argc, char * argv[] ){
+  char opt;
+  string out_file;
+  int n, row_size, col_size, found, sum_found, num_tests;
+  // istream test;
+
+  if( argc == 3 ){
+    if( argv[1][0] == '-' ){
+      opt = argv[1][1];
+      out_file = argv[2];
+    }
+  }
+  else if( argc == 2 ){
+    opt = 'g';
+    out_file = argv[1];
+  }
+  else{
+    cerr << "Error: Invalid args" << endl;
+    return 1;
+  }
+
+  vector<string> graph6s;
+  string g_string;
+
+  string graph_file, log_file;
+
+  graph_file = out_file + ".graphs";
+  ofstream g_file( graph_file.c_str() );
+  if( !g_file.is_open() ){
+    cerr << "Error opening " << graph_file << endl;
+    return 0;
+  }
+  
+  log_file = out_file + ".log";
+  ofstream log( log_file.c_str() );
+  if( !log.is_open() ){
+    cerr << "Error opening " << log_file << endl;
+    return 0;
+  }
+
+
+  if( opt == 'g' ){
+    while( getline( cin, g_string ) ){
+      graph6s.push_back( g_string );
+    }
+
+    num_tests = graph6s.size();
+  }
+  // Generate random Erdos-Renyi graphs
+  else if( opt == 'r' ){
     float p;
-    int num_tests;
+        
     cout << "Testing LLL domination with random graphs..." << endl;
     cout << "n? ";
     cin >> n;
@@ -95,11 +169,150 @@ int main( int argc, char * argv[] ){
     cin >> p;
     cout << "Number of tests? ";
     cin >> num_tests;
+    //    cout << "Filename? ";
+    //cin >> out_file;
 
-    cout << n << " " << p << " " << num_tests << endl;
-
+    log << "Random graphs" << endl;
+    log << n << " " << p << " " << num_tests << endl;
+    
+    for( int i = 0; i < num_tests; i++ ){
+      g gr( n );
+      int added = gr.make_rand_er( p );
+      graph6s.push_back( gr.to_g6() );
+    }
   }
+
+  found = 0; sum_found = 0;
+
+  int test_num = 1;
+  for( vector<string>::iterator it = graph6s.begin();
+       it != graph6s.end(); it++ ){
+    g gr( (*it)[0] - 63 );
+    gr.read_g6( *it );
+    n = gr.order();
+    row_size = 3*n;
+    col_size = 2*n + 1;
+
+    gr.print_g6( &g_file );
+
+    GEMatrix gr_A;
+    GEMatrix gr_B;
+    
+    get_matrix( &gr, &gr_A );
+    
+    cout << gr_A << endl;
+    
+    get_dom_basis( &gr_A, &gr_B );
+    
+    print_matrix( &gr_B );
+    
+    lll( &gr_B );
+    
+    print_matrix( &gr_B );
+    
+    bool success = false; bool sum_success = false;
+    log << "**** " << test_num << " ****" << endl;
+    
+    for( int c = 1; c <= col_size; c++ ){
+
+      bool still_good_one = check_vec( gr_B(_,_(c,c) ), row_size, n );
+
+      
+      if( still_good_one ){
+	log << test_num << " FOUND ONE, column " << c << endl;;
+	  
+	int dom_set[n];
+	for( int r = 1; r <= n; r++ ){
+	  dom_set[r-1] = gr_B(r,c);
+	}
+	  
+	cout << "FOUND ONE " << c << endl;
+	  
+	// if the vector is a domination set
+	if( is_dom_set( &gr, dom_set ) ){
+	  success = true;
+	    
+	  cout << "... AND it's a dominating set" << endl;
+	  log << "... AND it's a dominating set:" << endl;
+	  log << "x = ";
+	  int dom_size = 0;
+	  for( int i = 0; i < n; i++ ){
+	    log << dom_set[i] << " ";
+	    if( dom_set[i] != 0 )
+	      dom_size++;
+	  }
+	  log << endl;
+	  log << "Cardinality: " << dom_size << endl;
+	  
+	}
+	
+	cout << endl;
+      }
+
+    }
+    
+    if( !success ){
+      log << "Did not find one, attempting to sum columns..." <<endl;
+      for( int c1 = 1; c1 < col_size; c1++ ){
+	for( int c2 = c1+1; c2 <=col_size; c2++ ){
+	  GEMatrix sum = gr_B(_,_(c1,c1) ) + gr_B(_,_(c2,c2) );
+	  bool still_good_one = check_vec( sum, row_size, n );
+      
+	  if( still_good_one ){
+	    log << test_num << " FOUND ONE, columns " << c1 << " + " << c2 << endl;;
+	    
+	    int dom_set[n];
+	    for( int r = 1; r <= n; r++ ){
+	      dom_set[r-1] = sum(r,1);
+	    }
+	    
+	    cout << "FOUND ONE " << c1 << " + " << c2 << endl;
+	  
+	    // if the vector is a domination set
+	    if( is_dom_set( &gr, dom_set ) ){
+	      sum_success = true;
+	      
+	      cout << "... AND it's a dominating set" << endl;
+	      log << "... AND it's a dominating set:" << endl;
+	      log << "x = ";
+	      int dom_size = 0;
+	      for( int i = 0; i < n; i++ ){
+		log << dom_set[i] << " ";
+		if( dom_set[i] != 0 )
+		  dom_size++;
+	      }
+	      log << endl;
+	      log << "Cardinality: " << dom_size << endl;
+	      
+	    }
+	    
+	    cout << endl;
+	  }
+	}
+      }
+    }
+    
+    if( success ){ 
+      found++;
+    }
+    else if( sum_success ){
+      sum_found++;
+    }
+    test_num++;
+    log << endl;
+    
+    sleep(2);
+    
+  }
+  log << "******************" << endl;
+  log << "Original found: " << found << endl;
+  log << "Sum found: " << sum_found << endl;
+  log << "Total found: " << found+sum_found << " / " << num_tests << endl;
+  g_file.close();
+  log.close();
 }
+
+
 
 
 void test( ){
@@ -127,38 +340,6 @@ void test( ){
   cout << endl;
   cout << Bstar << endl; */
 
-  lll(&B);
-  
-  cout << B << endl;
-
-  g gr(13);
-  gr.add_edge(0,3);
-  gr.add_edge(1,3);
-  gr.add_edge(2,3);
-  gr.add_edge(0,4);
-  gr.add_edge(0,5);
-  gr.add_edge(0,6);
-  gr.add_edge(1,7);
-  gr.add_edge(1,8);
-  gr.add_edge(1,9);
-  gr.add_edge(2,10);
-  gr.add_edge(2,11);
-  gr.add_edge(2,12);
-  
-  GEMatrix gr_A;
-  GEMatrix gr_B;
-
-  get_matrix( &gr, &gr_A );
-
-  cout << gr_A << endl;
-
-  get_dom_basis( &gr_A, &gr_B );
-
-  print_matrix( &gr_B );
-
-  lll( &gr_B );
-
-  print_matrix( &gr_B );
 }
 
 
