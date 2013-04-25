@@ -1,0 +1,7 @@
+# .o files
+*.o
+*.txt
+test
+*.out
+reduce
+test*
