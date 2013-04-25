@@ -164,7 +164,7 @@ int main( int argc, char * argv[] ){
         
     cout << "Testing LLL domination with random graphs..." << endl;
     cout << "n? ";
-    cin >> n;
+    cin >> n; 
     cout << "p? ";
     cin >> p;
     cout << "Number of tests? ";
@@ -175,10 +175,13 @@ int main( int argc, char * argv[] ){
     log << "Random graphs" << endl;
     log << n << " " << p << " " << num_tests << endl;
     
+
+    cout << "Generating random graphs..." << endl;
     for( int i = 0; i < num_tests; i++ ){
       g gr( n );
       int added = gr.make_rand_er( p );
       graph6s.push_back( gr.to_g6() );
+      sleep(2);
     }
   }
 
@@ -300,9 +303,7 @@ int main( int argc, char * argv[] ){
     }
     test_num++;
     log << endl;
-    
-    sleep(2);
-    
+
   }
   log << "******************" << endl;
   log << "Original found: " << found << endl;
