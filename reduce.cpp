@@ -64,8 +64,8 @@ bool is_dom_set( g * gr, int * dom_set ){
     }
   }
 
-  for( int i = 0; i < n; i++ ) cout << dominated[i] << " ";
-  cout << endl;
+  // for( int i = 0; i < n; i++ ) cout << dominated[i] << " ";
+  //cout << endl;
   
   for( int i = 0; i < n; i++ )
     if( !dominated[i] ) return false;
@@ -116,7 +116,7 @@ int main( int argc, char * argv[] ){
   int n, row_size, col_size, found, sum_found, num_tests;
   // istream test;
 
-  if( argc == 3 ){
+  if( argc >= 3 ){
     if( argv[1][0] == '-' ){
       opt = argv[1][1];
       out_file = argv[2];
@@ -157,6 +157,23 @@ int main( int argc, char * argv[] ){
     }
 
     num_tests = graph6s.size();
+  }
+  // Hamming graph
+  else if( opt == 'h' ){
+    cout << "Testing LLL domination with a Hamming graph" << endl;
+    int l;
+    if( argc == 4 ){
+      l = atoi( argv[3] );
+    }
+    else{
+      cout << "l? ";
+      cin >> l;
+    }
+    n = pow( 3, l );
+    g ham(n);
+    ham.make_hamming( l );
+    graph6s.push_back( ham.to_g6() );
+
   }
   // Generate random Erdos-Renyi graphs
   else if( opt == 'r' ){
@@ -205,25 +222,30 @@ int main( int argc, char * argv[] ){
     
     cout << gr_A << endl;
     
-    get_dom_basis( &gr_A, &gr_B );
+    get_dom_basis( &gr_A, &gr_B, 10 );
     
     print_matrix( &gr_B );
     
-    lll( &gr_B );
+    lll( &gr_B, 0.95, false );
+
+    cout << endl;
     
     print_matrix( &gr_B );
     
     bool success = false; bool sum_success = false;
     log << "**** " << test_num << " ****" << endl;
+    log << "Max Degree = " << gr.max_degree() << endl;
+    cout << "Max Degree = " << gr.max_degree() << endl;
     
-    for( int c = 1; c <= col_size; c++ ){
+    for( int c = 1; c <= col_size && !success; c++ ){
 
       bool still_good_one = check_vec( gr_B(_,_(c,c) ), row_size, n );
 
       
       if( still_good_one ){
-	log << test_num << " FOUND ONE, column " << c << endl;;
-	  
+	//	log << test_num << " FOUND ONE, column " << c << endl;;
+	cout << "FOUND ONE " << c << endl;
+
 	int dom_set[n];
 	for( int r = 1; r <= n; r++ ){
 	  dom_set[r-1] = gr_B(r,c);
@@ -237,10 +259,12 @@ int main( int argc, char * argv[] ){
 	    
 	  cout << "... AND it's a dominating set" << endl;
 	  log << "... AND it's a dominating set:" << endl;
+	  cout << "x = ";
 	  log << "x = ";
 	  int dom_size = 0;
 	  for( int i = 0; i < n; i++ ){
 	    log << dom_set[i] << " ";
+	    cout << dom_set[i] << " ";
 	    if( dom_set[i] != 0 )
 	      dom_size++;
 	  }
@@ -258,42 +282,55 @@ int main( int argc, char * argv[] ){
       log << "Did not find one, attempting to sum columns..." <<endl;
       for( int c1 = 1; c1 < col_size; c1++ ){
 	for( int c2 = c1+1; c2 <=col_size; c2++ ){
-	  GEMatrix sum = gr_B(_,_(c1,c1) ) + gr_B(_,_(c2,c2) );
-	  bool still_good_one = check_vec( sum, row_size, n );
+
+	  bool go = true;
+	  int scale = 1;
+
+	  while(go){
+
+	    GEMatrix sum = gr_B(_,_(c1,c1) ) + scale * gr_B(_,_(c2,c2) );
+	    bool still_good_one = check_vec( sum, row_size, n );
       
-	  if( still_good_one ){
-	    log << test_num << " FOUND ONE, columns " << c1 << " + " << c2 << endl;;
+	    if( still_good_one ){
+	      //	    log << test_num << " FOUND ONE, columns " << c1 << " + " << c2 << endl;;
 	    
-	    int dom_set[n];
-	    for( int r = 1; r <= n; r++ ){
-	      dom_set[r-1] = sum(r,1);
-	    }
-	    
-	    cout << "FOUND ONE " << c1 << " + " << c2 << endl;
-	  
-	    // if the vector is a domination set
-	    if( is_dom_set( &gr, dom_set ) ){
-	      sum_success = true;
-	      
-	      cout << "... AND it's a dominating set" << endl;
-	      log << "... AND it's a dominating set:" << endl;
-	      log << "x = ";
-	      int dom_size = 0;
-	      for( int i = 0; i < n; i++ ){
-		log << dom_set[i] << " ";
-		if( dom_set[i] != 0 )
-		  dom_size++;
+	      int dom_set[n];
+	      for( int r = 1; r <= n; r++ ){
+		dom_set[r-1] = sum(r,1);
 	      }
-	      log << endl;
-	      log << "Cardinality: " << dom_size << endl;
-	      
-	    }
 	    
-	    cout << endl;
+	      cout << "FOUND ONE " << c1 << " + " << c2 << endl;
+	  
+	      // if the vector is a domination set
+	      if( is_dom_set( &gr, dom_set ) ){
+		sum_success = true;
+		
+		cout << "... AND it's a dominating set" << endl;
+		log << "... AND it's a dominating set:" << endl;
+		cout << "x = ";
+		log << "x = ";
+		int dom_size = 0;
+		for( int i = 0; i < n; i++ ){
+		  log << dom_set[i] << " ";
+		  cout << dom_set[i] << " ";
+		  if( dom_set[i] != 0 )
+		    dom_size++;
+		}
+		log << endl;
+		log << "Cardinality: " << dom_size << endl;
+
+		cout << endl;
+	      }
+	    }
+	    if( scale == -1 )
+	      go = false;
+	    else
+	      scale = -1;
 	  }
 	}
       }
     }
+    
     
     if( success ){ 
       found++;

@@ -30,8 +30,24 @@ GEMatrix gram_schmidt( GEMatrix * B, GEMatrix * Bstar ){
   return alpha;
 }
 
+double norm( DEVector * v, bool taxi ){
+  if( !taxi )
+    return blas::dot( *v, *v );
+  else{
+    double sum = 0;
+    
+    for(int i = 1; i <= v->length(); i++){
+      double val = (*v)(i);
+      if( val >= 0 ) sum += val;
+      else sum += (-1*val);
+    }
+    //    for( int i = 0; i < 
+  }
+    
+}
 
-void lll( GEMatrix * B ){
+
+void lll( GEMatrix * B, double y, bool taxi ){
   int m = B->numRows();
   int n = B->numCols();
 
@@ -61,9 +77,9 @@ void lll( GEMatrix * B ){
     for( int j = 1; j < n; j++ ){
       DEVector suma =Bstar(_,_(j+1,j+1)).vectorView() + 
 	coef(j,j+1)*Bstar(_,_(j,j)).vectorView();
-      double norma = blas::dot( suma, suma );
-      double normb = blas::dot(Bstar(_,_(j,j)).vectorView(),
-			       Bstar(_,_(j,j)).vectorView());
+      DEVector sumb = Bstar(_,_(j,j)).vectorView();
+      double norma = norm( &suma, taxi );
+      double normb = norm( &sumb, taxi );
       if( norma < y * normb ){
 	found = true;
 	blas::swap( (*B)(_,_(j,j)).vectorView(), 

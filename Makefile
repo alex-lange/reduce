@@ -53,7 +53,7 @@ CCLIBFLAGS =
 
 g_path = /home/alex/research/archer
 
-CPP_FILES =	reduce.cpp lll.cpp
+CPP_FILES =	reduce.cpp reduce_ramsey.cpp lll.cpp
 C_FILES =	
 PS_FILES =	
 S_FILES =	
@@ -69,11 +69,14 @@ FLENSFILES = /home/alex/software/flens/FLENS/
 # Main targets
 #
 
-all:	reduce 
+all:	reduce reduce_ramsey
 
 
 reduce:	reduce.o $(OBJFILES) $(GOBJFILES)
 	$(CXX) $(CXXFLAGS) -o reduce reduce.o $(OBJFILES) $(GOBJFILES) $(CCLIBFLAGS)
+
+reduce_ramsey:	reduce_ramsey.o $(OBJFILES) $(GOBJFILES)
+	$(CXX) $(CXXFLAGS) -o reduce_ramsey reduce_ramsey.o $(OBJFILES) $(GOBJFILES) $(CCLIBFLAGS)
 
 
 
@@ -93,7 +96,7 @@ archive.tgz:	$(SOURCEFILES) Makefile
 	tar cf - $(SOURCEFILES) Makefile | gzip > archive.tgz
 
 clean:
-	-/bin/rm -f $(OBJFILES) reduce.o core
+	-/bin/rm -f $(OBJFILES) reduce.o reduce_ramsey.o core
 
 realclean:        clean
 	-/bin/rm -f reduce 
