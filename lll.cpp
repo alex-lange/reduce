@@ -35,19 +35,20 @@ double norm( DEVector * v, bool taxi ){
     return blas::dot( *v, *v );
   else{
     double sum = 0;
-    
     for(int i = 1; i <= v->length(); i++){
       double val = (*v)(i);
       if( val >= 0 ) sum += val;
       else sum += (-1*val);
     }
+
+    return sum;
     //    for( int i = 0; i < 
   }
     
 }
 
 
-void lll( GEMatrix * B, double y, bool taxi ){
+int lll( GEMatrix * B, double y, bool taxi ){
   int m = B->numRows();
   int n = B->numCols();
 
@@ -56,9 +57,11 @@ void lll( GEMatrix * B, double y, bool taxi ){
 
   bool done = false;
 
-  int rounds = 0;
+  int rounds = 1;
 
   while( !done ){
+    //  this was put here
+    //  GEMatrix coef = gram_schmidt( B, &Bstar );
     
     // step 1
     for( int j = 2; j <= n; j++ ){
@@ -99,19 +102,144 @@ void lll( GEMatrix * B, double y, bool taxi ){
       //      print_matrix( B );
     }
   }
+  return rounds;
 }
 
 
-void print_matrix( GEMatrix * A ){
+int wr( GEMatrix * B, GEMatrix * delta ){
+  bool taxi = false;
+  int m = B->numRows();
+  int n = B->numCols();
+  int num_replaced = 0;
+
+  // check all (n choose 2) combinations of vertices
+  for( int i = 1; i < n; i++ ){
+    for( int j = i+1; j <= n; j++ ){
+      
+      int k;
+      // e in [-1,1]
+      for( int e = -1; e <= 1; e += 2 ){
+	if( (*delta)(i,i) < (*delta)(j,j) )
+	  k = j;
+	else
+	  k = i;
+
+	DEVector V = (*B)(_,_(i,i)).vectorView()
+	  + e * (*B)(_,_(j,j)).vectorView();
+
+
+	// if the norm of V is different replace it!
+	if( norm( &V, taxi ) < (*delta)(k,k) ){
+
+	  // make sure no bugs
+	  double dotprod = 0;
+	  for( int x = 1; x <= m; x++ )  dotprod += V(x)*V(x);
+	  (*delta)(k,k) = (*delta)(i,i) + (*delta)(j,j) + 2*e*(*delta)(i,j);
+	  if( (*delta)(k,k) != dotprod ) return -1;
+
+	  
+	  for( int h = 1; h <= n; h++ ){
+	    if (h != i && h != j){
+	      (*delta)(k,h) = (*delta)(i,h)+e*(*delta)(j,h);
+	      (*delta)(h,k) = (*delta)(k,h);
+	    }
+	  }
+
+	  if( k != i ){
+	    (*delta)(k,i) = (*delta)(i,i) + e*(*delta)(j,i);
+	    (*delta)(i,k) = (*delta)(k,i);
+	  }
+	  else{
+	    (*delta)(k,j) = (*delta)(i,j) + e*(*delta)(j,j);
+	    (*delta)(j,k) = (*delta)(k,j);
+	  }
+	  
+	  for( int l = 1; l <= m; l++ ){
+	    (*B)(l,k) = V(l);
+	  }
+
+	  num_replaced++;
+	}
+
+      }
+
+    }
+  }
+  return num_replaced;
+}
+
+
+int wr_taxi( GEMatrix * B, double * delta ){
+  int n = B->numCols();
+  int m = B->numRows();
+
+  int num_replaced = 0;
+
+  for( int i = 1; i < n; i++ ){
+    for( int j = i+1; j <= n; j++ ){
+      
+      int k;
+      // e in [-1,1]
+      for( int e = -1; e <= 1; e += 2 ){
+	if( delta[i-1] < delta[j-1] )
+	  k = j;
+	else
+	  k = i;
+	
+	DEVector V = (*B)(_,_(i,i)).vectorView()
+	  + e * (*B)(_,_(j,j)).vectorView();
+	
+	// if the norm of V is better replace it!
+	double new_norm = norm( &V, true );
+	if( new_norm < delta[k-1] ){
+	  for( int l = 1; l <= m; l++ ){
+	    (*B)(l,k) = V(l);
+	  }
+	  delta[k-1] = new_norm;
+	  num_replaced++;
+	}
+	else{
+	  //	  cout << "New = " << new_norm << " and old = " 
+
+	}
+      }
+    }
+  }
+  return num_replaced;
+}
+
+
+void fill_delta( GEMatrix * B, GEMatrix * delta ){
+  int m = B->numRows();
+  int n = B->numCols();
+  int n1 = delta->numRows();
+  int n2 = delta->numCols();
+
+  if( n == n1 && n == n2 ){
+    for( int i = 1; i <= n; i++ ){
+      for( int j = i; j <= n; j++ ){
+	(*delta)(i,j) = blas::dot( (*B)(_,_(i,i)).vectorView(), 
+				   (*B)(_,_(j,j)).vectorView() ); 
+	if( i != j ) (*delta)(j,i) = (*delta)(i,j);
+      }
+    }
+  }
+  else{
+    cerr << "Error: Matrices indices don't match" << endl;
+  }
+}
+
+
+void print_matrix( GEMatrix * A, ostream * o ){
   int m = A->numRows();
   int n = A->numCols();
   for( int i = 1; i <= m; i++ ){
     for( int j = 1; j <= n; j++ ){
-      cout << " ";
-      if( (*A)(i,j) >= 0 ) cout << " ";
-      cout << (*A)(i,j);
+      *o << " ";
+      if( (*A)(i,j) >= 0 ) *o << " ";
+      *o << (*A)(i,j);
     }
-    cout << endl;
+    *o << endl;
   }
 
 }

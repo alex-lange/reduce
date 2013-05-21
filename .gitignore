@@ -4,4 +4,4 @@
 test
 *.out
 reduce
-test*
+reduce_ramsey

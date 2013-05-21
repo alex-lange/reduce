@@ -6,6 +6,7 @@
 
 #include <flens/flens.cxx>
 #include <cmath>
+#include <iostream>
 
 using namespace flens;
 
@@ -32,8 +33,10 @@ GEMatrix gram_schmidt( GEMatrix * B, GEMatrix * Bstar );
 
 double norm( DEVector * v, bool taxi = false );
 
-void lll( GEMatrix * B, double y = 0.75, bool taxi = false );
-
-void print_matrix( GEMatrix * A );
+int lll( GEMatrix * B, double y = 0.75, bool taxi = false );
+int wr( GEMatrix * B, GEMatrix * delta );
+int wr_taxi( GEMatrix * B, double * delta ); 
+void fill_delta( GEMatrix * B, GEMatrix * delta );
+void print_matrix( GEMatrix * A, std::ostream * o = &std::cout );
 
 #endif
