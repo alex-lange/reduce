@@ -300,32 +300,3 @@ int main( int argc, char * argv[] ){
 
 
 
-
-void test( ){
-
-  GEMatrix B(4,4);
-  GEMatrix Bstar(4,4);
-
-  DEVector x(3), y(3);
-
-  B = 1, 2, 3,  4,
-      5, 6, 7,  8,
-      9, 8, 7,  6,
-      5, 4, 3, 20;
-
-  cout << B << endl;
-  cout << endl;
-
-  /*  GEMatrix alpha = gram_schmidt( &B, &Bstar );
-
-  cout << Bstar << endl;
-  cout << endl;
-  cout << alpha << endl;
-
-  blas::swap( Bstar(_,_(1,1)).vectorView(), Bstar(_,_(2,2)).vectorView() );
-  cout << endl;
-  cout << Bstar << endl; */
-
-}
-
-

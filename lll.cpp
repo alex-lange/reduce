@@ -83,11 +83,12 @@ int lll( GEMatrix * B, double y, bool taxi ){
       DEVector sumb = Bstar(_,_(j,j)).vectorView();
       double norma = norm( &suma, taxi );
       double normb = norm( &sumb, taxi );
+
       if( norma < y * normb ){
 	found = true;
 	blas::swap( (*B)(_,_(j,j)).vectorView(), 
 		    (*B)(_,_(j+1,j+1)).vectorView());
-	break;
+	//	break;
       }
     }
     if( !found ){

@@ -53,7 +53,7 @@ CCLIBFLAGS =
 
 g_path = /home/alex/research/archer
 
-CPP_FILES =	reduce.cpp reduce_ramsey.cpp test.cpp lll.cpp
+CPP_FILES =	reduce.cpp reduce_ramsey.cpp test.cpp lll.cpp gen_gr.cpp
 C_FILES =	
 PS_FILES =	
 S_FILES =	
@@ -80,6 +80,9 @@ reduce_ramsey:	reduce_ramsey.o $(OBJFILES) $(GOBJFILES)
 
 test:	test.o $(OBJFILES) $(GOBJFILES)
 	$(CXX) $(CXXFLAGS) -o test test.o $(OBJFILES) $(GOBJFILES) $(CCLIBFLAGS)
+
+gen_gr:	gen_gr.o $(OBJFILES) $(GOBJFILES)
+	$(CXX) $(CXXFLAGS) -o gen_gr gen_gr.o $(OBJFILES) $(GOBJFILES) $(CCLIBFLAGS)
 
 
 #

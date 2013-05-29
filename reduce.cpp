@@ -504,11 +504,11 @@ int main( int argc, char * argv[] ){
     log << "*Order = " << n << endl;
     log << "*Basis is " << row_size << " x " << col_size << endl;
     if( good ){
-      log << "*Domianation set FOUND, number = " << min_dom << "\n*x = ";
+      log << "*Dominating set FOUND, number = " << min_dom << "\n*x = ";
       for( int i = 0; i < n; i++ ) log << final_dom_set[i] << " ";
       log << endl;
     }
-    else log << "*Domination set not found" << endl;
+    else log << "*Dominating set not found" << endl;
     log << "*Number of LLL loops: " <<  lll_rounds << endl;
     log << "*Number of WR runs: " << wr_runs << endl;
     log << "*Number of WR replaces: " << wr_replaces << endl;
@@ -518,16 +518,17 @@ int main( int argc, char * argv[] ){
     log << "*Found at stage ";
     if( num_summed_needed > 0 ) log << num_summed_needed << endl;
     else log << "NONE" << endl;
-    log << "^" << y << " ";
-    if( good ) log << "Y " << min_dom << " " << num_summed_needed;
-    else log << "N n/a n/a";
-    log << " " << lll_rounds << " " << wr_runs << " " << wr_replaces << " "
-	<< num_vecs_found << " " << num_dom_vecs_found  
-	<< " " << cur_time << endl;
+    log << "^" << y << " & ";
+    if( good ) log << "Y " << min_dom << " & " << num_summed_needed;
+    else log << "N & n/a & n/a";
+    log << " & " << lll_rounds << " & " << wr_runs << " & " << wr_replaces << " & "
+	<< num_vecs_found << " & " << num_dom_vecs_found  
+	<< " & " << cur_time << endl;
     test_num++;
     log << endl;
 
   }
+  avg_time = avg_time / num_tests;
   log << "******************" << endl;
   log << "**y = " << y << ", " << "scale = " << sc << endl;
   log << "**LLL Taxi " << ( taxi_lll ? "TRUE" : "FALSE" )
@@ -539,6 +540,9 @@ int main( int argc, char * argv[] ){
   log << "**Sum3 found: " << sum3_found << endl;
   int total = found + sum_found + sum3_found;
   log << "**Total found: " << total << " / " << num_tests << endl;
+  log << "^^" << found << " & " << sum_found << " & " << sum3_found
+      << " & " << total << " & " << avg_time << " & " << min_time 
+      << " & " << max_time << endl;
   if( print_graphs ) g_file.close();
   log.close();
 }
