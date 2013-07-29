@@ -25,10 +25,41 @@ GEMatrix gram_schmidt( GEMatrix * B, GEMatrix * Bstar ){
       
       // replaces vector with orthogonal vector
       (*Bstar)(_,_(j,j)) = (*Bstar)(_,_(j,j)) - alph * (*Bstar)(_,_(i,i));
+
     }
   }
   return alpha;
 }
+
+
+bool compair( const sort_pair& l, const sort_pair& r){ 
+  return l.first < r.first;
+}
+
+
+void sort_basis( GEMatrix * B, double * delta ){
+  int m = B->numRows();
+  int n = B->numCols();
+  vector<sort_pair> del;
+  for( int i = 0; i < n; i++ ){
+    del.push_back( std::make_pair(delta[i], i ) );
+  }
+
+  sort( del.begin(), del.end(), compair );
+
+  GEMatrix  temp(m,n);
+
+  int s;
+
+  for( int c = 1; c <= n; c++ ){
+    s = del[ c - 1].second + 1;
+    temp(_,_(c,c)) = (*B)(_,_(s,s));
+  }
+ 
+  for( int c = 1; c <= n; c++ )
+    (*B)(_,_(c,c)) =  temp(_,_(c,c));
+}
+
 
 double norm( DEVector * v, bool taxi ){
   if( !taxi )
@@ -67,6 +98,8 @@ int lll( GEMatrix * B, double y, bool taxi ){
     for( int j = 2; j <= n; j++ ){
       for( int i = j-1; i >= 1; i-- ){
 	if( abs(coef(i,j)) > .5 ){
+	  //	  cout << "FLOOR " << floor(coef(i,j)+.5) << " " << "COEF " << i << " " << j << " " << coef(i,j) << endl;
+	  if( floor(coef(i,j)+.5) > 500 || floor(coef(i,j)+.5) < -500 ){ return 0; }
 	  (*B)(_,_(j,j)) = (*B)(_,_(j,j)) - 
 	    floor(coef(i,j)+.5) * (*B)(_,_(i,i));
 	}
@@ -85,6 +118,7 @@ int lll( GEMatrix * B, double y, bool taxi ){
       double normb = norm( &sumb, taxi );
 
       if( norma < y * normb ){
+	//	cout << "normz " << norma << " " << normb << endl;
 	found = true;
 	blas::swap( (*B)(_,_(j,j)).vectorView(), 
 		    (*B)(_,_(j+1,j+1)).vectorView());
@@ -107,7 +141,7 @@ int lll( GEMatrix * B, double y, bool taxi ){
 }
 
 
-int wr( GEMatrix * B, GEMatrix * delta ){
+int wr( GEMatrix * B, double ** delta ){
   bool taxi = false;
   int m = B->numRows();
   int n = B->numCols();
@@ -120,7 +154,7 @@ int wr( GEMatrix * B, GEMatrix * delta ){
       int k;
       // e in [-1,1]
       for( int e = -1; e <= 1; e += 2 ){
-	if( (*delta)(i,i) < (*delta)(j,j) )
+	if( delta[i-1][i-1] < delta[j-1][j-1] )
 	  k = j;
 	else
 	  k = i;
@@ -130,29 +164,29 @@ int wr( GEMatrix * B, GEMatrix * delta ){
 
 
 	// if the norm of V is different replace it!
-	if( norm( &V, taxi ) < (*delta)(k,k) ){
+	if( norm( &V, taxi ) < delta[k-1][k-1] ){
 
 	  // make sure no bugs
 	  double dotprod = 0;
 	  for( int x = 1; x <= m; x++ )  dotprod += V(x)*V(x);
-	  (*delta)(k,k) = (*delta)(i,i) + (*delta)(j,j) + 2*e*(*delta)(i,j);
-	  if( (*delta)(k,k) != dotprod ) return -1;
+	  delta[k-1][k-1] = delta[i-1][i-1] + delta[j-1][j-1] + 2*e*delta[i-1][j-1];
+	  if( delta[k-1][k-1] != dotprod ) return -1;
 
 	  
 	  for( int h = 1; h <= n; h++ ){
 	    if (h != i && h != j){
-	      (*delta)(k,h) = (*delta)(i,h)+e*(*delta)(j,h);
-	      (*delta)(h,k) = (*delta)(k,h);
+	      delta[k-1][h-1] = delta[i-1][h-1]+e*delta[j-1][h-1];
+	      delta[h-1][k-1] = delta[k-1][h-1];
 	    }
 	  }
 
 	  if( k != i ){
-	    (*delta)(k,i) = (*delta)(i,i) + e*(*delta)(j,i);
-	    (*delta)(i,k) = (*delta)(k,i);
+	    delta[k-1][i-1] = delta[i-1][i-1] + e*delta[j-1][i-1];
+	    delta[i-1][k-1] = delta[k-1][i-1];
 	  }
 	  else{
-	    (*delta)(k,j) = (*delta)(i,j) + e*(*delta)(j,j);
-	    (*delta)(j,k) = (*delta)(k,j);
+	    delta[k-1][j-1] = delta[i-1][j-1] + e*delta[j-1][j-1];
+	    delta[j-1][k-1] = delta[k-1][j-1];
 	  }
 	  
 	  for( int l = 1; l <= m; l++ ){
@@ -209,25 +243,53 @@ int wr_taxi( GEMatrix * B, double * delta ){
   return num_replaced;
 }
 
+void fill_delta_t( GEMatrix * B,  double * delta2 ){
+  int n = B->numCols();
 
-void fill_delta( GEMatrix * B, GEMatrix * delta ){
+  for( int i = 1; i <= n; i++ ){
+    DEVector temp = (*B)(_,_(i,i) ).vectorView();
+    delta2[i-1] = norm( &temp, true );
+    //    cout << delta2[i-1] << endl;
+  }
+}
+
+
+void fill_delta( GEMatrix * B, double ** delta, double * delta2 ){
   int m = B->numRows();
   int n = B->numCols();
-  int n1 = delta->numRows();
-  int n2 = delta->numCols();
+  
+  
+  //  int n1 = delta->numRows();
+  //  int n2 = delta->numCols();
 
-  if( n == n1 && n == n2 ){
-    for( int i = 1; i <= n; i++ ){
-      for( int j = i; j <= n; j++ ){
-	(*delta)(i,j) = blas::dot( (*B)(_,_(i,i)).vectorView(), 
-				   (*B)(_,_(j,j)).vectorView() ); 
-	if( i != j ) (*delta)(j,i) = (*delta)(i,j);
-      }
+  //  if( n == n1 && n == n2 ){
+
+  for( int i = 0; i < n; i++ ){
+    for( int j = i; j < n; j++ ){
+      delta[i][j] = 0;
+      delta[j][i] = 0;
     }
   }
+  for( int i = 1; i <= n; i++ ){
+    for( int j = i; j <= n; j++ ){
+            delta[i-1][j-1] = blas::dot( (*B)(_,_(i,i)).vectorView(), 
+      				 (*B)(_,_(j,j)).vectorView() ); 
+	    /*  double test = 0;
+      for( int x = 1; x <= m; x++ ){
+	test += (*B)(x,i) * (*B)(x,j);
+	//	cout << (*B)(x,i) << " " << (*B)(x,j) << " " << test << endl;
+      }
+      //      if( test < epsilon ) test = 0;
+      delta[i-1][j-1] = test;
+      //      cout <<  i << " " << j << " " << delta[i-1][j-1] << endl; */
+      if( i != j ) delta[j-1][i-1] = delta[i-1][j-1];
+      else delta2[ i-1 ] = delta[i-1][j-1];
+    }
+  }
+    /*  }
   else{
     cerr << "Error: Matrices indices don't match" << endl;
-  }
+    }*/
 }
 
 

@@ -53,7 +53,7 @@ CCLIBFLAGS =
 
 g_path = /home/alex/research/archer
 
-CPP_FILES =	reduce.cpp reduce_ramsey.cpp test.cpp lll.cpp gen_gr.cpp
+CPP_FILES =	reduce.cpp reduce2.cpp reduce_ramsey.cpp test.cpp lll.cpp gen_gr.cpp
 C_FILES =	
 PS_FILES =	
 S_FILES =	
@@ -69,11 +69,15 @@ FLENSFILES = /home/alex/software/flens/FLENS/
 # Main targets
 #
 
-all:	reduce reduce_ramsey test
+all:	reduce reduce2 reduce_ramsey test
 
 
 reduce:	reduce.o $(OBJFILES) $(GOBJFILES)
 	$(CXX) $(CXXFLAGS) -o reduce reduce.o $(OBJFILES) $(GOBJFILES) $(CCLIBFLAGS)
+
+reduce2: reduce2.o $(OBJFILES) $(GOBJFILES)
+	$(CXX) $(CXXFLAGS) -o reduce2 reduce2.o $(OBJFILES) $(GOBJFILES) $(CCLIBFLAGS)
+
 
 reduce_ramsey:	reduce_ramsey.o $(OBJFILES) $(GOBJFILES)
 	$(CXX) $(CXXFLAGS) -o reduce_ramsey reduce_ramsey.o $(OBJFILES) $(GOBJFILES) $(CCLIBFLAGS)

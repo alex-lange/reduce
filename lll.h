@@ -23,6 +23,10 @@ typedef GEMatrix::ConstVectorView GEMatrixConstVectorView;
 
 const Underscore<GEMatrix::IndexType> _;
 
+typedef std::pair<double,int> sort_pair;
+
+const double epsilon = -1e10;
+
 //const double y = .75;
 
 /*
@@ -34,9 +38,11 @@ GEMatrix gram_schmidt( GEMatrix * B, GEMatrix * Bstar );
 double norm( DEVector * v, bool taxi = false );
 
 int lll( GEMatrix * B, double y = 0.75, bool taxi = false );
-int wr( GEMatrix * B, GEMatrix * delta );
+int wr( GEMatrix * B, double ** delta );
 int wr_taxi( GEMatrix * B, double * delta ); 
-void fill_delta( GEMatrix * B, GEMatrix * delta );
+void fill_delta( GEMatrix * B, double ** delta, double * delta2 );
+void fill_delta_t( GEMatrix * B,  double * delta2 );
 void print_matrix( GEMatrix * A, std::ostream * o = &std::cout );
+void sort_basis( GEMatrix * B, double * delta ); 
 
 #endif
